@@ -45,15 +45,45 @@ public class GradeCalculator {
         int numCategories = scanner.nextInt();
         scanner.nextLine(); // Consume newline
 
-        for (int i = 0; i < numCategories; i++) {
-            System.out.print("\nEnter name for category #" + (i + 1) + ": ");
-            String name = scanner.nextLine().trim();
-            System.out.print("Enter the weight for '" + name + "' (e.g., enter 20 for 20%): ");
-            double weight = scanner.nextDouble();
-            scanner.nextLine(); // Consume newline
-            
-            categories.put(name.toLowerCase(), new Category(name, weight));
-        }
+        double totalWeight = 0.0;
+        boolean restartCategories;
+        do {
+            restartCategories = false;
+            categories.clear();
+            totalWeight = 0.0;
+
+            for (int i = 0; i < numCategories; i++) {
+                System.out.print("\nEnter name for category #" + (i + 1) + ": ");
+                String name = scanner.nextLine().trim();
+
+                double weight;
+                while (true) {
+                    System.out.print("Enter the weight for '" + name + "' (e.g., enter 20 for 20%): ");
+                    weight = scanner.nextDouble();
+                    scanner.nextLine(); // Consume newline
+
+                    if (weight < 0) {
+                        System.out.println("Weight cannot be negative. Please enter a valid percentage.");
+                        continue;
+                    }
+
+                    double projectedTotal = totalWeight + weight;
+                    if (projectedTotal > 100.0) {
+                        System.out.println("I understand: total weights exceed 100%.");
+                        System.out.println("Restarting category entry so you can correct weights.");
+                        restartCategories = true;
+                        break;
+                    }
+
+                    break;
+                }
+
+                if (restartCategories) break;
+
+                totalWeight += weight;
+                categories.put(name.toLowerCase(), new Category(name, weight));
+            }
+        } while (restartCategories);
 
         // 2. Input Existing Grades
         System.out.print("\nHow many grades have been entered so far? ");
@@ -75,11 +105,34 @@ public class GradeCalculator {
                 catInput = scanner.nextLine().trim().toLowerCase();
             }
 
-            System.out.print("Points earned: ");
-            double earned = scanner.nextDouble();
-            System.out.print("Maximum points possible: ");
-            double max = scanner.nextDouble();
-            scanner.nextLine(); 
+            double earned;
+            double max;
+            while (true) {
+                System.out.print("Points earned: ");
+                earned = scanner.nextDouble();
+                System.out.print("Maximum points possible: ");
+                max = scanner.nextDouble();
+                scanner.nextLine(); 
+
+                if (max <= 0) {
+                    System.out.println("Maximum points must be greater than 0. Please re-enter the values.");
+                    continue;
+                }
+
+                if (earned > max) {
+                    System.out.printf("Warning: points earned (%.2f) exceed maximum (%.2f).\n", earned, max);
+                    System.out.print("If this is a data entry mistake type 'r' to re-enter, or 'a' to accept anyway: ");
+                    String resp = scanner.nextLine().trim().toLowerCase();
+                    if (resp.equals("a") || resp.equals("accept") || resp.equals("yes") || resp.equals("y")) {
+                        break;
+                    } else {
+                        System.out.println("Re-enter the points for this grade.");
+                        continue;
+                    }
+                }
+
+                break;
+            }
 
             categories.get(catInput).addGrade(earned, max);
         }
