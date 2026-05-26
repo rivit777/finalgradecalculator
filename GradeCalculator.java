@@ -31,6 +31,14 @@ public class GradeCalculator {
         Map<String, Category> categories = new HashMap<>();
 
         System.out.println("=== School Grade Calculator & Predictor ===");
+        System.out.print("Do you want to calculate a project in a quarter, a midterm, or a final? ");
+        String assessmentType = scanner.nextLine().trim().toLowerCase();
+        while (!assessmentType.equals("project") && !assessmentType.equals("midterm") && !assessmentType.equals("final")) {
+            System.out.print("Please enter project, midterm, or final: ");
+            assessmentType = scanner.nextLine().trim().toLowerCase();
+        }
+        String assessmentLabel = assessmentType.substring(0, 1).toUpperCase() + assessmentType.substring(1);
+        System.out.println("Using " + assessmentLabel + " grade mode.");
         
         // 1. Setup Categories and Weights
         System.out.print("How many grading categories are there in your syllabus? (e.g., Homework, Quizzes, Final): ");
@@ -87,7 +95,7 @@ public class GradeCalculator {
         String predict = scanner.nextLine().trim().toLowerCase();
 
         if (predict.equals("yes") || predict.equals("y")) {
-            System.out.print("Which category will this new grade be in?: ");
+            System.out.print("Which category will this new " + assessmentType + " grade be in?: ");
             String predCat = scanner.nextLine().trim().toLowerCase();
             
             while (!categories.containsKey(predCat)) {
