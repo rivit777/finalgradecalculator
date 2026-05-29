@@ -1,6 +1,8 @@
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 
 class Category {
     String name;
@@ -140,31 +142,101 @@ public class GradeCalculator {
                 getLetterGrade(baselineCurrentGrade));
 
         if (promptYesNo(scanner,
-                "\nWould you like to see what you need to reach nearby letter grades with a future assignment? (yes/no): ")) {
-            double futureWeight = promptDouble(scanner,
-                    "What percentage of your overall grade is the future assignment/exam worth? ", 0.0, 100.0);
-            printLetterProximity(baselineCurrentGrade, futureWeight);
+                "\nWould you like to see what you need to reach nearby letter grades with a future project or assignment? (yes/no): ")) {
+            boolean categoryFuture = false;
+            String selectedCategory = null;
+            double futureWeight = 0.0;
+            if (promptYesNo(scanner, "Is this future project in one of the existing categories? (yes/no): ")) {
+                selectedCategory = promptCategoryChoice(scanner, categories,
+                        "Which category will the future project belong to? ");
+                double projectMax = promptDouble(scanner,
+                        "How many points is the future project worth in that category? ", 0.0, Double.MAX_VALUE);
+                printLetterProximityForCategory(categories, selectedCategory, projectMax);
+                categoryFuture = true;
+            } else {
+                futureWeight = promptDouble(scanner,
+                        "What percentage of your overall grade is the future project or assignment worth? ", 0.0, 100.0);
+                printLetterProximity(baselineCurrentGrade, futureWeight);
+            }
+
+            if (promptYesNo(scanner,
+                    "\nWould you like to estimate your projected grade using a specific expected score for this future project? (yes/no): ")) {
+                if (categoryFuture) {
+                    double predictedMax = promptDouble(scanner,
+                            "What are the maximum points possible for this upcoming project? ", 0.0,
+                            Double.MAX_VALUE);
+                    double predictedEarned = promptDouble(scanner,
+                            "Predicted points earned on this project (e.g., 80): ", 0.0,
+                            predictedMax);
+                    double projectedGrade = calculateProjectedGradeInCategory(categories, selectedCategory,
+                            predictedEarned, predictedMax);
+
+                    System.out.printf("\n===================================\n");
+                    System.out.printf("If you score %.1f/%.1f on this project,\n", predictedEarned,
+                            predictedMax);
+                    System.out.printf("Your PREDICTED overall grade is: %.2f%% (%s)\n", projectedGrade,
+                            getLetterGrade(projectedGrade));
+                    System.out.printf("===================================\n");
+                } else {
+                    double predictedMax = promptDouble(scanner,
+                            "Predicted maximum points possible on this project/assignment (e.g., 100): ",
+                            Double.MIN_VALUE, Double.MAX_VALUE);
+                    double predictedEarned = promptDouble(scanner,
+                            "Predicted points earned on this project/assignment (e.g., 80): ", 0.0,
+                            predictedMax);
+                    double predictedPercent = (predictedEarned / predictedMax) * 100.0;
+                    double projectedGrade = calculateProjectedGrade(baselineCurrentGrade, futureWeight, predictedPercent);
+
+                    System.out.printf("\n===================================\n");
+                    System.out.printf("If you score %.1f/%.1f (%.2f%%) on this project or assignment,\n", predictedEarned,
+                            predictedMax, predictedPercent);
+                    System.out.printf("Your PREDICTED overall grade is: %.2f%% (%s)\n", projectedGrade,
+                            getLetterGrade(projectedGrade));
+                    System.out.printf("===================================\n");
+                }
+            }
         }
 
-        if (promptYesNo(scanner, "\nWould you like to predict your grade with an upcoming assignment? (yes/no): ")) {
-            double futureWeight = promptDouble(scanner,
-                    "What percentage of your overall grade is the upcoming assignment/exam worth? ", 0.0, 100.0);
-            double predictedEarned = promptDouble(scanner, "Predicted points earned (e.g., 80): ", 0.0,
-                    Double.MAX_VALUE);
-            double predictedMax = promptDouble(scanner, "Predicted maximum points possible (e.g., 100): ",
-                    Double.MIN_VALUE, Double.MAX_VALUE);
-            double predictedPercent = (predictedEarned / predictedMax) * 100.0;
-            double projectedGrade = calculateProjectedGrade(baselineCurrentGrade, futureWeight, predictedPercent);
+        if (promptYesNo(scanner, "\nWould you like to predict your grade with an upcoming project or assignment? (yes/no): ")) {
+            if (promptYesNo(scanner, "Is this upcoming project in one of the existing categories? (yes/no): ")) {
+                String selectedCategory = promptCategoryChoice(scanner, categories,
+                        "Which category will the upcoming project belong to? ");
+                double predictedMax = promptDouble(scanner,
+                        "What are the maximum points possible for this upcoming project? ", 0.0,
+                        Double.MAX_VALUE);
+                double predictedEarned = promptDouble(scanner,
+                        "Predicted points earned on this project (e.g., 80): ", 0.0,
+                        predictedMax);
+                double projectedGrade = calculateProjectedGradeInCategory(categories, selectedCategory,
+                        predictedEarned, predictedMax);
 
-            String gradeLabel = assessmentType.equals("final") ? "final" : assessmentType.equals("midterm") ? "semester" : "overall";
-            System.out.printf("\n===================================\n");
-            System.out.printf("If you score %.1f/%.1f (%.2f%%) on this assignment,\n", predictedEarned,
-                    predictedMax, predictedPercent);
-            System.out.printf("Your PREDICTED %s grade is: %.2f%% (%s)\n", gradeLabel, projectedGrade,
-                    getLetterGrade(projectedGrade));
-            System.out.printf("===================================\n");
+                String gradeLabel = assessmentType.equals("final") ? "final" : assessmentType.equals("midterm") ? "semester" : "overall";
+                System.out.printf("\n===================================\n");
+                System.out.printf("If you score %.1f/%.1f on this project,\n", predictedEarned,
+                        predictedMax);
+                System.out.printf("Your PREDICTED %s grade is: %.2f%% (%s)\n", gradeLabel, projectedGrade,
+                        getLetterGrade(projectedGrade));
+                System.out.printf("===================================\n");
+            } else {
+                double futureWeight = promptDouble(scanner,
+                        "What percentage of your overall grade is the upcoming project or assignment worth? ", 0.0, 100.0);
+                double predictedEarned = promptDouble(scanner, "Predicted points earned on this project/assignment (e.g., 80): ", 0.0,
+                        Double.MAX_VALUE);
+                double predictedMax = promptDouble(scanner, "Predicted maximum points possible on this project/assignment (e.g., 100): ",
+                        Double.MIN_VALUE, Double.MAX_VALUE);
+                double predictedPercent = (predictedEarned / predictedMax) * 100.0;
+                double projectedGrade = calculateProjectedGrade(baselineCurrentGrade, futureWeight, predictedPercent);
 
-            printLetterProximity(baselineCurrentGrade, futureWeight);
+                String gradeLabel = assessmentType.equals("final") ? "final" : assessmentType.equals("midterm") ? "semester" : "overall";
+                System.out.printf("\n===================================\n");
+                System.out.printf("If you score %.1f/%.1f (%.2f%%) on this project or assignment,\n", predictedEarned,
+                        predictedMax, predictedPercent);
+                System.out.printf("Your PREDICTED %s grade is: %.2f%% (%s)\n", gradeLabel, projectedGrade,
+                        getLetterGrade(projectedGrade));
+                System.out.printf("===================================\n");
+
+                printLetterProximity(baselineCurrentGrade, futureWeight);
+            }
         }
 
         System.out.println("\nGood luck with your classes!");
@@ -258,32 +330,162 @@ public class GradeCalculator {
         return currentGrade * (1.0 - weightFraction) + futurePercent * weightFraction;
     }
 
+    public static double calculateProjectedGradeInCategory(Map<String, Category> categories, String categoryName,
+                                                          double predictedEarned, double predictedMax) {
+        if (categoryName != null) {
+            categoryName = categoryName.trim().toLowerCase();
+        }
+        Category target = categories.get(categoryName);
+        if (target == null) {
+            return calculateOverallGrade(categories);
+        }
+
+        double newEarned = target.earnedPoints + predictedEarned;
+        double newMax = target.maxPoints + predictedMax;
+        double categoryPercent = (newMax <= 0) ? 0.0 : (newEarned / newMax) * 100.0;
+
+        double totalWeightedScore = 0.0;
+        double activeWeights = 0.0;
+        for (Category cat : categories.values()) {
+            double catPercent = cat.name.equals(target.name) ? categoryPercent : cat.getCategoryPercentage();
+            if (cat.maxPoints > 0 || cat.name.equals(target.name)) {
+                totalWeightedScore += catPercent * (cat.weight / 100.0);
+                activeWeights += cat.weight;
+            }
+        }
+
+        if (activeWeights == 0) {
+            return 0.0;
+        }
+        return totalWeightedScore / (activeWeights / 100.0);
+    }
+
+    public static String promptCategoryChoice(Scanner scanner, Map<String, Category> categories, String prompt) {
+        System.out.println(prompt);
+        for (Category category : categories.values()) {
+            System.out.printf("- %s\n", category.name);
+        }
+        System.out.print("Enter category name: ");
+        String catInput = scanner.nextLine().trim().toLowerCase();
+        while (!categories.containsKey(catInput)) {
+            System.out.print("Category not found. Please enter one of the listed categories: ");
+            catInput = scanner.nextLine().trim().toLowerCase();
+        }
+        return catInput;
+    }
+
     public static void printLetterProximity(double currentGrade, double futureWeight) {
         double weightFraction = futureWeight / 100.0;
+        String currentLetter = getLetterGrade(currentGrade);
         System.out.printf("\n--- Letter grade proximity with %.1f%% weight ---\n", futureWeight);
         if (weightFraction <= 0) {
-            System.out.println("A future assignment weight must be greater than 0 to calculate letter proximity.");
+            System.out.println("A future project or assignment weight must be greater than 0 to calculate letter proximity.");
             return;
         }
 
-        String[] targets = {"B+", "A-", "A", "A+"};
-        for (String target : targets) {
+        System.out.printf("Current grade: %.2f%% (%s)\n", currentGrade, currentLetter);
+        Set<String> targetSet = new LinkedHashSet<>();
+        for (String target : getNearbyLetterGrades(currentLetter, 2)) {
+            targetSet.add(target);
+        }
+        targetSet.add("B-");
+        targetSet.add("B");
+        targetSet.add("B+");
+
+        for (String target : targetSet) {
             double threshold = getLetterThreshold(target);
-            if (currentGrade >= threshold) {
-                System.out.printf("Already at or above %s (%.1f%%).\n", target, threshold);
+            double required = (threshold - currentGrade * (1.0 - weightFraction)) / weightFraction;
+            if (required <= 0) {
+                System.out.printf("To reach %s (%.1f%%), you need 0%% or more on the future project or assignment.\n",
+                        target, threshold);
+            } else if (required > 150.0) {
+                System.out.printf("To reach %s (%.1f%%), you would need over 150%% on the future project or assignment (not realistic).\n",
+                        target, threshold);
             } else {
-                double required = (threshold - currentGrade * (1.0 - weightFraction)) / weightFraction;
-                if (required <= 0) {
-                    System.out.printf("Already at or above %s (%.1f%%).\n", target, threshold);
-                } else if (required > 150.0) {
-                    System.out.printf("To reach %s (%.1f%%), you would need over 150%% on the future assignment (not realistic).\n",
-                            target, threshold);
-                } else {
-                    System.out.printf("To reach %s (%.1f%%), you need %.2f%% on the future assignment.\n",
-                            target, threshold, required);
-                }
+                System.out.printf("To reach %s (%.1f%%), you need %.2f%% on the future project or assignment.\n",
+                        target, threshold, required);
             }
         }
+    }
+
+    public static void printLetterProximityForCategory(Map<String, Category> categories, String categoryName, double futureMax) {
+        if (categoryName != null) {
+            categoryName = categoryName.trim().toLowerCase();
+        }
+        Category category = categories.get(categoryName);
+        if (category == null) {
+            System.out.println("Unknown category. Cannot calculate category proximity.");
+            return;
+        }
+
+        double currentGrade = calculateOverallGrade(categories);
+        String currentLetter = getLetterGrade(currentGrade);
+        System.out.printf("\n--- Letter grade proximity for category '%s' with a %.1f-point future project ---\n",
+                category.name, futureMax);
+        System.out.printf("Current grade: %.2f%% (%s)\n", currentGrade, currentLetter);
+        Set<String> targetSet = new LinkedHashSet<>();
+        for (String target : getNearbyLetterGrades(currentLetter, 2)) {
+            targetSet.add(target);
+        }
+        targetSet.add("B-");
+        targetSet.add("B");
+        targetSet.add("B+");
+
+        double otherContribution = 0.0;
+        double categoryWeightFraction = category.weight / 100.0;
+        for (Category cat : categories.values()) {
+            if (!cat.name.equals(category.name) && cat.maxPoints > 0) {
+                otherContribution += cat.getCategoryPercentage() * (cat.weight / 100.0);
+            }
+        }
+        for (String target : targetSet) {
+            double threshold = getLetterThreshold(target);
+            double neededCategoryPercent = (threshold - otherContribution) / categoryWeightFraction;
+            if (neededCategoryPercent > 100.0) {
+                System.out.printf("To reach %s (%.1f%%), you would need more than 100%% in category '%s' (not realistic).\n",
+                        target, threshold, category.name);
+                continue;
+            }
+
+            double neededEarned = (neededCategoryPercent / 100.0) * (category.maxPoints + futureMax) - category.earnedPoints;
+            double requiredPercent = (futureMax <= 0) ? Double.POSITIVE_INFINITY : (neededEarned / futureMax) * 100.0;
+
+            if (requiredPercent <= 0) {
+                System.out.printf("Already at or above %s (%.1f%%).\n", target, threshold);
+            } else if (requiredPercent > 150.0) {
+                System.out.printf("To reach %s (%.1f%%), you would need over 150%% on the future project in category '%s' (not realistic).\n",
+                        target, threshold, category.name);
+            } else {
+                System.out.printf("To reach %s (%.1f%%), you need %.2f%% on the future project in category '%s'.\n",
+                        target, threshold, requiredPercent, category.name);
+            }
+        }
+    }
+
+    public static String[] getNearbyLetterGrades(String currentLetter, int span) {
+        String[] ordered = {"D-", "D", "D+", "C-", "C", "C+", "B-", "B", "B+", "A-", "A", "A+"};
+        int index = -1;
+        for (int i = 0; i < ordered.length; i++) {
+            if (ordered[i].equals(currentLetter)) {
+                index = i;
+                break;
+            }
+        }
+        if (index == -1) {
+            if (currentLetter.equals("F")) {
+                index = 0;
+            } else {
+                index = 0;
+            }
+        }
+
+        int start = Math.max(0, index - span);
+        int end = Math.min(ordered.length - 1, index + span);
+        String[] nearby = new String[end - start + 1];
+        for (int i = start; i <= end; i++) {
+            nearby[i - start] = ordered[i];
+        }
+        return nearby;
     }
 
     public static double getLetterThreshold(String letter) {
